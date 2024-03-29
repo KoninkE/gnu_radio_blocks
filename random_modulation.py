@@ -61,9 +61,9 @@ class default(gr.top_block, Qt.QWidget):
         self.current_modulation = random.choice(MODULATION_TYPES)
         self.modulation_timer = QTimer()
         self.modulation_timer.timeout.connect(self.update_modulation)
-        self.modulation_timer.start(500)
+        self.modulation_timer.start(1000)
         
-        self.gen_and_send()
+        # self.gen_and_send()
 
         self.settings = Qt.QSettings("GNU Radio", "default")
 
@@ -82,6 +82,7 @@ class default(gr.top_block, Qt.QWidget):
         self.variable_constellation_0 = variable_constellation_0 = digital.constellation_16qam().base()
         self.samp_rate = samp_rate = 32e3
         self.rrc_taps = rrc_taps = firdes.root_raised_cosine(nfilts, nfilts*4, 1.0, 0.35, 11*4*nfilts)
+        self.pack_k = pack_k = 4
         self.freq = freq = 900e6
         self.bitstring_data = bitstring_data = 0
 
@@ -90,7 +91,7 @@ class default(gr.top_block, Qt.QWidget):
         ##################################################
 
         self.uhd_usrp_source_0_0 = uhd.usrp_source(
-            ",".join(("serial=31E9D76", "type=b200")),
+            ",".join(("serial=316407F", "type=b200")),
             uhd.stream_args(
                 cpu_format="fc32",
                 args='',
@@ -105,7 +106,7 @@ class default(gr.top_block, Qt.QWidget):
         self.uhd_usrp_source_0_0.set_antenna("TX/RX", 0)
         self.uhd_usrp_source_0_0.set_gain(40, 0)
         self.uhd_usrp_sink_0 = uhd.usrp_sink(
-            ",".join(("serial=31E9D76", "type=b200")),
+            ",".join(("serial=316407F", "type=b200")),
             uhd.stream_args(
                 cpu_format="fc32",
                 args='',
@@ -356,7 +357,7 @@ class default(gr.top_block, Qt.QWidget):
             log=False,
             truncate=False)
         self.blocks_vector_sink_x_0 = blocks.vector_sink_c(512, 1024)
-        self.blocks_pack_k_bits_bb_0 = blocks.pack_k_bits_bb(4)
+        self.blocks_pack_k_bits_bb_0 = blocks.pack_k_bits_bb(pack_k)
         self.blocks_multiply_xx_0 = blocks.multiply_vcc(1)
         self.blocks_file_source_0 = blocks.file_source(gr.sizeof_char*1, 'C:\\Users\\ellio\\Programs\\Datasets\\Radio Dataset\\bitstrings.txt', True, 0, 0)
         self.blocks_file_source_0.set_begin_tag(pmt.PMT_NIL)
@@ -375,7 +376,6 @@ class default(gr.top_block, Qt.QWidget):
         self.connect((self.digital_constellation_modulator_0, 0), (self.digital_pfb_clock_sync_xxx_0, 0))
         self.connect((self.digital_constellation_modulator_0, 0), (self.qtgui_const_sink_x_0_0, 0))
         self.connect((self.digital_pfb_clock_sync_xxx_0, 0), (self.blocks_multiply_xx_0, 1))
-        self.connect((self.uhd_usrp_source_0_0, 0), (self.blocks_vector_sink_x_0, 0))
         self.connect((self.uhd_usrp_source_0_0, 0), (self.qtgui_const_sink_x_0_1_0, 0))
         self.connect((self.uhd_usrp_source_0_0, 0), (self.qtgui_time_sink_x_0_2, 0))
 
@@ -384,34 +384,41 @@ class default(gr.top_block, Qt.QWidget):
         self.current_modulation = random.choice(MODULATION_TYPES)
         if self.current_modulation == "16QAM":
             self.variable_constellation_0 = digital.constellation_16qam().base()
-            self.blocks_pack_k_bits_bb_0.set_k(4)
+            self.blocks_pack_k_bits_bb_0 = 4
+            print("mod type: ", self.variable_constellation_0.bits_per_symbol())
             print("16QAM")
         elif self.current_modulation == "BPSK":
             self.variable_constellation_0 = digital.constellation_bpsk().base()
-            self.blocks_pack_k_bits_bb_0.set_k(1)
+            self.blocks_pack_k_bits_bb_0 = 1
+            print("mod type: ", self.variable_constellation_0.bits_per_symbol())
             print("BPSK")
         elif self.current_modulation == "8PSK":
             self.variable_constellation_0 = digital.constellation_8psk().base()
-            self.blocks_pack_k_bits_bb_0.set_k(3)
+            self.blocks_pack_k_bits_bb_0 = 3
+            print("mod type: ", self.variable_constellation_0.bits_per_symbol())
             print("8PSK")
         else: #check for "QPSK"
             self.variable_constellation_0 = digital.constellation_qpsk().base()
-            self.blocks_pack_k_bits_bb_0.set_k(2)
+            self.blocks_pack_k_bits_bb_0 = 2
+            print("mod type: ", self.variable_constellation_0.bits_per_symbol())
             print("QPSK")
             
-    def gen_and_send(self):
-        while True:
-            self.blocks_vector_sink_x_0 = blocks.vector_sink_c(512, 1024)
-            data = self.blocks_vector_sink_x_0.data()
             
-            print('gen n send')
+            
+            
+    # def gen_and_send(self):
+    #     while True:
+    #         self.blocks_vector_sink_x_0 = blocks.vector_sink_c(512, 1024)
+    #         data = self.blocks_vector_sink_x_0.data()
+            
+    #         # print('gen n send')
         
-            serialized_data = pickle.dumps(data)
+    #         serialized_data = pickle.dumps(data)
             
-            pipe = subprocess.Popen(['python', 'process2.py'], stdin=subprocess.PIPE)
-            pipe.stdin.write(serialized_data)
-            pipe.stdin.close()
-            pipe.wait()
+    #         pipe = subprocess.Popen(['python', 'process2.py'], stdin=subprocess.PIPE)
+    #         pipe.stdin.write(serialized_data)
+    #         pipe.stdin.close()
+    #         pipe.wait()
 
 
     def closeEvent(self, event):
